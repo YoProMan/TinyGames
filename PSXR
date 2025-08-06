@@ -1,0 +1,53 @@
+local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/memejames/elerium-v2-ui-library//main/Library", true))()
+local window = library:AddWindow("TINY Games", {
+    main_color = Color3.fromRGB(41, 74, 122),
+    min_size = Vector2.new(700, 500),
+    can_resize = false,
+})
+local features = window:AddTab("idk") -- Name of tab
+features:Show() -- shows the tab
+
+_G.autoBuyEgg = false
+_G.eggName = "Spotted Egg"
+_G.eggBuySpeed = 1
+
+local function startAutoBuyEgg()
+    task.spawn(function()
+        local things = workspace:WaitForChild("__THINGS", 5)
+        if not things then return end
+        local remotes = things:WaitForChild("__REMOTES", 5)
+        if not remotes then return end
+        local buyEgg = remotes:WaitForChild("buy egg", 5)
+        if not buyEgg then return end
+        
+        while _G.autoBuyEgg do
+            local args = {
+                {
+                    _G.eggName,
+                    false
+                }
+            }
+            pcall(function()
+                buyEgg:InvokeServer(unpack(args))
+            end)
+            task.wait(0.6 - (_G.eggBuySpeed * 0.1))
+        end
+    end)
+end
+
+local switch = features:AddSwitch("auto fast hatch egg", function(bool)
+    _G.autoBuyEgg = bool
+    if bool then
+        startAutoBuyEgg()
+    end
+end)
+
+local speedSlider = features:AddSlider("buy egg speed", function(value)
+    _G.eggBuySpeed = value
+end, {
+    ["min"] = 1,
+    ["max"] = 5,
+})
+speedSlider:Set(1)
+
+switch:Set(false)
