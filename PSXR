@@ -4,9 +4,149 @@ local window = library:AddWindow("TINY Games", {
     min_size = Vector2.new(700, 500),
     can_resize = false,
 })
-local features = window:AddTab("idk") -- Name of tab
-features:Show() -- shows the tab
 
+-- Services
+local Players = game:GetService("Players")
+local TS = game:GetService("TweenService")
+
+-- Global variables for orb collection
+_G.collectOrbs = false
+local orbConnection = nil
+
+-- Orb Collection Functions
+local function ClaimAllOrbs()
+    if not _G.collectOrbs then return end
+    
+    local player = Players.LocalPlayer
+    if not player then return end
+    local character = player.Character or player.CharacterAdded:Wait()
+    local HumanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not HumanoidRootPart then return end
+    
+    local orbsFolder = workspace:FindFirstChild("__THINGS")
+    if not orbsFolder then return end
+    orbsFolder = orbsFolder:FindFirstChild("Orbs")
+    if not orbsFolder then return end
+    
+    local allorbs = orbsFolder:GetChildren()
+    for _, orb in pairs(allorbs) do
+        if orb:IsA("BasePart") or orb:IsA("Model") then
+            local ti = TweenInfo.new(
+                0.1,
+                Enum.EasingStyle.Quad,
+                Enum.EasingDirection.In
+            )
+            local tween = TS:Create(orb, ti, {CFrame = HumanoidRootPart.CFrame})
+            tween:Play()
+        end
+    end
+end
+
+local function startOrbCollection()
+    if orbConnection then
+        orbConnection:Disconnect()
+        orbConnection = nil
+    end
+    
+    -- Initial collection
+    ClaimAllOrbs()
+    
+    -- Monitor for new orbs
+    local orbsFolder = workspace:FindFirstChild("__THINGS")
+    if orbsFolder then
+        orbsFolder = orbsFolder:FindFirstChild("Orbs")
+        if orbsFolder then
+            orbConnection = orbsFolder.ChildAdded:Connect(function()
+                if _G.collectOrbs then
+                    wait(0.1) -- Small delay to ensure orb is fully loaded
+                    ClaimAllOrbs()
+                end
+            end)
+        end
+    end
+end
+
+local function stopOrbCollection()
+    if orbConnection then
+        orbConnection:Disconnect()
+        orbConnection = nil
+    end
+end
+
+-- AutoFarm Tab
+local autofarm = window:AddTab("AutoFarm") -- Name of tab
+autofarm:Show() -- shows the tab
+autofarm:AddLabel("Main")
+
+local switch = autofarm:AddSwitch("Autofarm (Breakable aura)", function(bool)
+     -- toggle_god_mode(bool)
+end)
+switch:Set(false)
+
+-- Collect Orbs Toggle (Modified)
+local orbSwitch = autofarm:AddSwitch("Collect orbs", function(bool)
+    _G.collectOrbs = bool
+    if bool then
+        startOrbCollection()
+    else
+        stopOrbCollection()
+    end
+end)
+orbSwitch:Set(false)
+
+local switch = autofarm:AddSwitch("Collect Lootbags", function(bool)
+     -- toggle_god_mode(bool)
+end)
+switch:Set(false)
+
+local switch = autofarm:AddSwitch("Teleport Around (Private Platform)", function(bool)
+     -- toggle_god_mode(bool)
+end)
+switch:Set(false)
+
+local dropdown = autofarm:AddDropdown("Select Teleport Area", function(text)
+    if text == "Spawn" then  -- Code
+        print("o")
+    elseif text == "Forest" then
+    print("k")
+    elseif text == "Beach" then
+    print("Weeeee")
+    end
+end)
+local mars = dropdown:Add("Spawn")  -- Options
+local earth = dropdown:Add("Forest")
+local not_a_planet = dropdown:Add("Beach")
+
+autofarm:AddLabel("Chests")
+
+local switch = autofarm:AddSwitch("Autofarm Big Chests", function(bool)
+     -- toggle_god_mode(bool)
+end)
+switch:Set(false)
+
+local switch = autofarm:AddSwitch("Teleport under chest (Private Platform)", function(bool)
+     -- toggle_god_mode(bool)
+end)
+switch:Set(false)
+
+local dropdown = autofarm:AddDropdown("Select Chest", function(text)
+    if text == "Spawn" then  -- Code
+        print("o")
+    elseif text == "Forest" then
+    print("k")
+    elseif text == "Beach" then
+    print("Weeeee")
+    end
+end)
+local volcano= dropdown:Add("Volcano")  -- Options
+local fantasy = dropdown:Add("Fantasy")
+local haunted = dropdown:Add("Haunted")
+local hell = dropdown:Add("Hell")
+local heaven = dropdown:Add("Heaven")
+local heavenbig = dropdown:Add("Heaven Big")
+
+-- Eggs Tab
+local features = window:AddTab("Eggs") -- Name of tab
 _G.autoBuyEgg = false
 _G.eggName = "Spotted Egg"
 _G.eggBuySpeed = 1
@@ -19,7 +159,7 @@ local function startAutoBuyEgg()
         if not remotes then return end
         local buyEgg = remotes:WaitForChild("buy egg", 5)
         if not buyEgg then return end
-        
+       
         while _G.autoBuyEgg do
             local args = {
                 {
@@ -49,5 +189,4 @@ end, {
     ["max"] = 5,
 })
 speedSlider:Set(1)
-
 switch:Set(false)
