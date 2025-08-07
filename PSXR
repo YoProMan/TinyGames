@@ -279,7 +279,7 @@ local function CheckDistance(mesh)
     if not HumanoidRootPart then return false end
     
     local distance = (HumanoidRootPart.Position - mesh.Position).Magnitude
-    return distance <= 100
+    return distance <= 250
 end
 
 local function startAutoFarm()
