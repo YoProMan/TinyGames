@@ -48,6 +48,7 @@ local function createBreakableAuraSphere()
     breakableAuraSphere.Anchored = true
     breakableAuraSphere.CanCollide = false
     breakableAuraSphere.BrickColor = BrickColor.new("Bright green")
+    breakableAuraSphere.CastShadow = false
     breakableAuraSphere.Parent = workspace
     
     -- Set initial size based on slider value
