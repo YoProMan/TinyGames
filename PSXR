@@ -13,6 +13,10 @@ local TS = game:GetService("TweenService")
 _G.collectOrbs = false
 local orbConnection = nil
 
+-- Global variables for autofarm
+_G.autoFarmEnabled = false
+local autoFarmConnection = nil
+
 -- Orb Collection Functions
 local function ClaimAllOrbs()
     if not _G.collectOrbs then return end
@@ -73,13 +77,119 @@ local function stopOrbCollection()
     end
 end
 
+-- Autofarm Functions
+local function GetListLength(list)
+    local len = 1
+    for i, v in pairs(list) do
+        len += 1
+    end
+    return len
+end
+
+local function GetPlayerPets()
+    local Pets = workspace:FindFirstChild("__THINGS")
+    if not Pets then return {} end
+    Pets = Pets:FindFirstChild("Pets")
+    if not Pets then return {} end
+    
+    local plrpets = {}
+    for i, pet in pairs(Pets:GetChildren()) do
+        local Owner = pet:GetAttribute("Owner")
+        if Owner == Players.LocalPlayer.Name then
+            plrpets[GetListLength(plrpets)] = pet.Name
+        end
+    end
+    return plrpets
+end
+
+local function AttackCoin(coinid)
+    local playerpets = GetPlayerPets()
+    if #playerpets == 0 then return end
+    
+    local petToAttack = playerpets[math.random(1, GetListLength(playerpets))]
+    
+    pcall(function()
+        workspace.__THINGS.__REMOTES["join coin"]:InvokeServer({
+            [1] = coinid,
+            [2] = {
+                [1] = petToAttack,
+            },
+        })
+        workspace.__THINGS.__REMOTES["change pet target"]:FireServer({
+            [1] = petToAttack,
+            [2] = "Coin",
+            [3] = coinid,
+        })
+        workspace.__THINGS.__REMOTES["farm coin"]:FireServer({
+            [1] = coinid,
+            [2] = petToAttack,
+        })
+    end)
+end
+
+local function CheckDistance(mesh)
+    local player = Players.LocalPlayer
+    if not player then return false end
+    local character = player.Character
+    if not character then return false end
+    local HumanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not HumanoidRootPart then return false end
+    
+    local distance = (HumanoidRootPart.Position - mesh.Position).Magnitude
+    return distance <= 100
+end
+
+local function startAutoFarm()
+    if autoFarmConnection then
+        autoFarmConnection:Disconnect()
+        autoFarmConnection = nil
+    end
+    
+    autoFarmConnection = task.spawn(function()
+        while _G.autoFarmEnabled do
+            task.wait(1)
+            
+            local things = workspace:FindFirstChild("__THINGS")
+            if not things then continue end
+            local coins = things:FindFirstChild("Coins")
+            if not coins then continue end
+            
+            for i, folder in pairs(coins:GetChildren()) do
+                if not _G.autoFarmEnabled then break end
+                
+                local coinMesh = folder:FindFirstChild("Coin")
+                if coinMesh then
+                    local inRange = CheckDistance(coinMesh)
+                    if inRange then
+                        AttackCoin(folder.Name)
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function stopAutoFarm()
+    _G.autoFarmEnabled = false
+    if autoFarmConnection then
+        task.cancel(autoFarmConnection)
+        autoFarmConnection = nil
+    end
+end
+
 -- AutoFarm Tab
 local autofarm = window:AddTab("AutoFarm") -- Name of tab
 autofarm:Show() -- shows the tab
 autofarm:AddLabel("Main")
 
+-- Modified Autofarm Switch with integrated functionality
 local switch = autofarm:AddSwitch("Autofarm (Breakable aura)", function(bool)
-     -- toggle_god_mode(bool)
+    _G.autoFarmEnabled = bool
+    if bool then
+        startAutoFarm()
+    else
+        stopAutoFarm()
+    end
 end)
 switch:Set(false)
 
