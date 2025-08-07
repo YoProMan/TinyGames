@@ -17,6 +17,11 @@ local orbConnection = nil
 _G.autoFarmEnabled = false
 local autoFarmConnection = nil
 
+-- player
+local plr = Players.LocalPlayer
+local char = plr.Character
+local humanoid = char.Humanoid
+
 -- Orb Collection Functions
 local function ClaimAllOrbs()
     if not _G.collectOrbs then return end
@@ -298,5 +303,42 @@ end, {
     ["min"] = 1,
     ["max"] = 5,
 })
+
+local features = window:AddTab("Misc") -- Name of tab
+_G.Walkspeed = 16
+_G.JumpHeight = 50
+_G.Modifying = false
+
+local walkSpeedSlider = features:AddSlider("Set Walkspeed", function(value)
+    _G.Walkspeed = value
+end, {
+    ["min"] = 1,
+    ["max"] = 200,
+})
+local jumpHeightSlider = features:AddSlider("Set Jumpheight", function(value)
+    _G.JumpHeight = value
+end, {
+    ["min"] = 1,
+    ["max"] = 500,
+})
+local modifyingSwitch = features:AddSwitch("Modifying?", function(bool)
+    _G.Modifying = bool
+end)
+
+task.spawn(function()
+    while task.wait() do
+        if _G.Modifying then
+            humanoid.WalkSpeed = _G.Walkspeed
+            humanoid.JumpHeight = _G.JumpHeight
+        else
+            humanoid.WalkSpeed = 16
+            humanoid.JumpHeight = 50
+        end
+    end
+end)
+
+modifyingSwitch:Set(false)
+jumpHeightSlider:Set(50)
+walkSpeedSlider:Set(16)
 speedSlider:Set(1)
 switch:Set(false)
