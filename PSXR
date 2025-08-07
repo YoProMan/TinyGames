@@ -17,10 +17,148 @@ local orbConnection = nil
 _G.autoFarmEnabled = false
 local autoFarmConnection = nil
 
+-- Global variables for teleport
+_G.teleportAround = false
+local teleportConnection = nil
+local voidProtectionPart = nil
+
 -- player
 local plr = Players.LocalPlayer
 local char = plr.Character
 local humanoid = char.Humanoid
+
+-- Void Protection Functions
+local function createVoidProtection()
+    if voidProtectionPart then
+        voidProtectionPart:Destroy()
+    end
+    
+    voidProtectionPart = Instance.new("Part")
+    voidProtectionPart.Name = "VoidProtection"
+    voidProtectionPart.Size = Vector3.new(10, 1, 10)
+    voidProtectionPart.Material = Enum.Material.ForceField
+    voidProtectionPart.Transparency = 0.8
+    voidProtectionPart.Anchored = true
+    voidProtectionPart.CanCollide = true
+    voidProtectionPart.BrickColor = BrickColor.new("Bright blue")
+    voidProtectionPart.Parent = workspace
+    
+    return voidProtectionPart
+end
+
+local function updateVoidProtection()
+    local player = Players.LocalPlayer
+    if not player then return end
+    local character = player.Character
+    if not character then return end
+    local HumanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not HumanoidRootPart then return end
+    
+    if not voidProtectionPart then
+        createVoidProtection()
+    end
+    
+    -- Position the platform 10 studs below the player
+    local playerPos = HumanoidRootPart.Position
+    voidProtectionPart.CFrame = CFrame.new(playerPos.X, playerPos.Y - 10, playerPos.Z)
+end
+
+local function removeVoidProtection()
+    if voidProtectionPart then
+        voidProtectionPart:Destroy()
+        voidProtectionPart = nil
+    end
+end
+
+-- Teleport Functions
+local function CheckTeleportDistance(Mesh)
+    local player = Players.LocalPlayer
+    if not player then return false end
+    local character = player.Character
+    if not character then return false end
+    local HumanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not HumanoidRootPart then return false end
+    
+    local distance = (HumanoidRootPart.Position - Mesh.Position).Magnitude
+    return distance <= 100
+end
+
+local function TeleportAround()
+    if teleportConnection then
+        task.cancel(teleportConnection)
+        teleportConnection = nil
+    end
+    
+    teleportConnection = task.spawn(function()
+        while _G.teleportAround do
+            task.wait(5)
+            
+            local things = workspace:FindFirstChild("__THINGS")
+            if not things then continue end
+            local coins = things:FindFirstChild("Coins")
+            if not coins then continue end
+            
+            local player = Players.LocalPlayer
+            if not player then continue end
+            local character = player.Character
+            if not character then continue end
+            local HumanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+            if not HumanoidRootPart then continue end
+            
+            for i, folder in pairs(coins:GetChildren()) do
+                if not _G.teleportAround then break end
+                
+                local coinMesh = folder:FindFirstChild("Coin")
+                if coinMesh then
+                    local inRange = CheckTeleportDistance(coinMesh)
+                    if inRange then
+                        -- Create teleport position slightly above the coin to avoid getting stuck
+                        local targetCFrame = coinMesh.CFrame + Vector3.new(0, 5, 0)
+                        
+                        local TI = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+                        local Tween = TS:Create(HumanoidRootPart, TI, {CFrame = targetCFrame})
+                        Tween:Play()
+                        
+                        -- Update void protection during teleport
+                        if _G.teleportAround then
+                            updateVoidProtection()
+                        end
+                        
+                        Tween.Finished:Wait()
+                        
+                        -- Update void protection after teleport
+                        if _G.teleportAround then
+                            updateVoidProtection()
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function startTeleportAround()
+    _G.teleportAround = true
+    createVoidProtection()
+    TeleportAround()
+    
+    -- Monitor player position for void protection updates
+    task.spawn(function()
+        while _G.teleportAround do
+            task.wait(0.5)
+            updateVoidProtection()
+        end
+    end)
+end
+
+local function stopTeleportAround()
+    _G.teleportAround = false
+    if teleportConnection then
+        task.cancel(teleportConnection)
+        teleportConnection = nil
+    end
+    removeVoidProtection()
+end
 
 -- Orb Collection Functions
 local function ClaimAllOrbs()
@@ -214,10 +352,15 @@ local switch = autofarm:AddSwitch("Collect Lootbags", function(bool)
 end)
 switch:Set(false)
 
-local switch = autofarm:AddSwitch("Teleport Around (Private Platform)", function(bool)
-     -- toggle_god_mode(bool)
+-- Integrated Teleport Around Switch
+local teleportSwitch = autofarm:AddSwitch("Teleport Around (Private Platform)", function(bool)
+    if bool then
+        startTeleportAround()
+    else
+        stopTeleportAround()
+    end
 end)
-switch:Set(false)
+teleportSwitch:Set(false)
 
 local dropdown = autofarm:AddDropdown("Select Teleport Area", function(text)
     if text == "Spawn" then  -- Code
@@ -342,3 +485,10 @@ jumpHeightSlider:Set(50)
 walkSpeedSlider:Set(16)
 speedSlider:Set(1)
 switch:Set(false)
+
+-- Cleanup when player leaves
+Players.PlayerRemoving:Connect(function(player)
+    if player == Players.LocalPlayer then
+        removeVoidProtection()
+    end
+end)
