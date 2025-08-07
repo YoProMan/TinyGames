@@ -712,7 +712,7 @@ local customSlider = autofarm:AddSlider("Breakable Aura Distance", function(valu
     end
 end, {
     ["min"] = 1,
-    ["max"] = 250,
+    ["max"] = 500,
 })
 
 -- Modified Show Breakable Aura Switch with functionality
