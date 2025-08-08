@@ -465,7 +465,6 @@ local function teleportToBeach()
         for _, obj in ipairs(beachArea:GetDescendants()) do
             if obj:IsA("BasePart") and obj.Name == "Ground" and obj.Color == targetColor then
                 rootPart.CFrame = obj.CFrame + Vector3.new(0, 5, 0)
-                print("Teleported to:", obj:GetFullName())
                 break
             end
         end
@@ -560,7 +559,6 @@ autofarm:AddLabel("Autofarm Settings")
 
 local customSlider = autofarm:AddSlider("Breakable Aura Distance", function(value)
     _G.customSliderValue = value
-    print("Custom slider value changed to:", value)
     if _G.showBreakableAura and breakableAuraSphere then
         local radius = value
         breakableAuraSphere.Size = Vector3.new(radius * 2, radius * 2, radius * 2)
@@ -625,7 +623,7 @@ end)
 
 local dropdown3 = autofarm:AddDropdown("Select Teleport Area (Spawn)", function(text)
     if text == "Spawn" then
-        print("o")
+        teleportToArea("Spawn")
     elseif text == "Town" then
         teleportToArea("Town")
     elseif text == "Forest" then
@@ -702,7 +700,6 @@ breakableAuraSwitch:Set(false)
 eggHatchSwitch:Set(false)
 modifyingSwitch:Set(false)
 
-customSlider:Set(250)
 speedSlider:Set(1)
 walkSpeedSlider:Set(16)
 jumpHeightSlider:Set(50)
