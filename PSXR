@@ -1,3 +1,6 @@
+-- ========================================
+-- LIBRARY AND WINDOW INITIALIZATION
+-- ========================================
 local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/memejames/elerium-v2-ui-library//main/Library", true))()
 local window = library:AddWindow("TINY Games", {
     main_color = Color3.fromRGB(41, 74, 122),
@@ -5,7 +8,9 @@ local window = library:AddWindow("TINY Games", {
     can_resize = false,
 })
 
--- Services
+-- ========================================
+-- SERVICES AND GLOBAL VARIABLES
+-- ========================================
 local Players = game:GetService("Players")
 local TS = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -29,12 +34,24 @@ _G.customSliderValue = 250
 local breakableAuraSphere = nil
 local auraUpdateConnection = nil
 
--- player
+-- Global variables for egg hatching
+_G.autoBuyEgg = false
+_G.eggName = "Hacker Egg"
+_G.eggBuySpeed = 1
+
+-- Global variables for misc features
+_G.Walkspeed = 16
+_G.JumpHeight = 50
+_G.Modifying = false
+
+-- Player references
 local plr = Players.LocalPlayer
 local char = plr.Character
 local humanoid = char.Humanoid
 
--- Breakable Aura Visualization Functions
+-- ========================================
+-- BREAKABLE AURA FUNCTIONS
+-- ========================================
 local function createBreakableAuraSphere()
     if breakableAuraSphere then
         breakableAuraSphere:Destroy()
@@ -51,7 +68,6 @@ local function createBreakableAuraSphere()
     breakableAuraSphere.CastShadow = false
     breakableAuraSphere.Parent = workspace
     
-    -- Set initial size based on slider value
     local radius = _G.customSliderValue or 250
     breakableAuraSphere.Size = Vector3.new(radius * 2, radius * 2, radius * 2)
     
@@ -70,10 +86,8 @@ local function updateBreakableAuraSphere()
         createBreakableAuraSphere()
     end
     
-    -- Update position to follow player
     breakableAuraSphere.Position = HumanoidRootPart.Position
     
-    -- Update size based on slider value
     local radius = _G.customSliderValue or 250
     breakableAuraSphere.Size = Vector3.new(radius * 2, radius * 2, radius * 2)
 end
@@ -93,7 +107,6 @@ local function startBreakableAuraVisualization()
     _G.showBreakableAura = true
     createBreakableAuraSphere()
     
-    -- Update sphere position and size continuously
     auraUpdateConnection = RunService.Heartbeat:Connect(function()
         if _G.showBreakableAura then
             updateBreakableAuraSphere()
@@ -106,7 +119,9 @@ local function stopBreakableAuraVisualization()
     removeBreakableAuraSphere()
 end
 
--- Void Protection Functions
+-- ========================================
+-- VOID PROTECTION FUNCTIONS
+-- ========================================
 local function createVoidProtection()
     if voidProtectionPart then
         voidProtectionPart:Destroy()
@@ -137,7 +152,6 @@ local function updateVoidProtection()
         createVoidProtection()
     end
     
-    -- Position the platform 10 studs below the player
     local playerPos = HumanoidRootPart.Position
     voidProtectionPart.CFrame = CFrame.new(playerPos.X, playerPos.Y - 10, playerPos.Z)
 end
@@ -149,7 +163,9 @@ local function removeVoidProtection()
     end
 end
 
--- Teleport Functions
+-- ========================================
+-- TELEPORT FUNCTIONS
+-- ========================================
 local function CheckTeleportDistance(Mesh)
     local player = Players.LocalPlayer
     if not player then return false end
@@ -191,21 +207,18 @@ local function TeleportAround()
                 if coinMesh then
                     local inRange = CheckTeleportDistance(coinMesh)
                     if inRange then
-                        -- Create teleport position slightly above the coin to avoid getting stuck
                         local targetCFrame = coinMesh.CFrame + Vector3.new(0, 5, 0)
                         
                         local TI = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
                         local Tween = TS:Create(HumanoidRootPart, TI, {CFrame = targetCFrame})
                         Tween:Play()
                         
-                        -- Update void protection during teleport
                         if _G.teleportAround then
                             updateVoidProtection()
                         end
                         
                         Tween.Finished:Wait()
                         
-                        -- Update void protection after teleport
                         if _G.teleportAround then
                             updateVoidProtection()
                         end
@@ -221,7 +234,6 @@ local function startTeleportAround()
     createVoidProtection()
     TeleportAround()
     
-    -- Monitor player position for void protection updates
     task.spawn(function()
         while _G.teleportAround do
             task.wait(0.5)
@@ -239,7 +251,9 @@ local function stopTeleportAround()
     removeVoidProtection()
 end
 
--- Orb Collection Functions
+-- ========================================
+-- ORB COLLECTION FUNCTIONS
+-- ========================================
 local function ClaimAllOrbs()
     if not _G.collectOrbs then return end
     
@@ -274,17 +288,15 @@ local function startOrbCollection()
         orbConnection = nil
     end
     
-    -- Initial collection
     ClaimAllOrbs()
     
-    -- Monitor for new orbs
     local orbsFolder = workspace:FindFirstChild("__THINGS")
     if orbsFolder then
         orbsFolder = orbsFolder:FindFirstChild("Orbs")
         if orbsFolder then
             orbConnection = orbsFolder.ChildAdded:Connect(function()
                 if _G.collectOrbs then
-                    wait(0.1) -- Small delay to ensure orb is fully loaded
+                    wait(0.1)
                     ClaimAllOrbs()
                 end
             end)
@@ -299,7 +311,9 @@ local function stopOrbCollection()
     end
 end
 
--- Autofarm Functions
+-- ========================================
+-- AUTOFARM FUNCTIONS
+-- ========================================
 local function GetListLength(list)
     local len = 1
     for i, v in pairs(list) do
@@ -349,7 +363,6 @@ local function AttackCoin(coinid)
     end)
 end
 
--- Updated CheckDistance function to use the custom slider value
 local function CheckDistance(mesh)
     local player = Players.LocalPlayer
     if not player then return false end
@@ -400,337 +413,9 @@ local function stopAutoFarm()
     end
 end
 
--- AutoFarm Tab
-local autofarm = window:AddTab("AutoFarm") -- Name of tab
-autofarm:Show() -- shows the tab
-autofarm:AddLabel("Main")
-
--- Modified Autofarm Switch with integrated functionality
-local autofarmSwitch = autofarm:AddSwitch("Autofarm (Breakable aura)", function(bool)
-    _G.autoFarmEnabled = bool
-    if bool then
-        startAutoFarm()
-    else
-        stopAutoFarm()
-    end
-end)
-autofarmSwitch:Set(false)
-
--- Collect Orbs Toggle (Modified)
-local orbSwitch = autofarm:AddSwitch("Collect orbs", function(bool)
-    _G.collectOrbs = bool
-    if bool then
-        startOrbCollection()
-    else
-        stopOrbCollection()
-    end
-end)
-orbSwitch:Set(false)
-
-local lootbagSwitch = autofarm:AddSwitch("Collect Lootbags", function(bool)
-     -- toggle_god_mode(bool)
-end)
-lootbagSwitch:Set(false)
-
--- Integrated Teleport Around Switch
-local teleportSwitch = autofarm:AddSwitch("Teleport To Middle", function(bool)
-    if bool then
-        startTeleportAround()
-    else
-        stopTeleportAround()
-    end
-end)
-teleportSwitch:Set(false)
-
-local dropdown = autofarm:AddDropdown("Select Teleport Area (Tech)", function(text)
-    if text == "Tech City" then  -- Code
-    local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local rootPart = character:WaitForChild("HumanoidRootPart")
-
--- Get the teleport part
-local teleportPart = workspace.__MAP.Areas["Tech City"].Ground
-
--- Teleport the player a bit above the part to avoid getting stuck
-rootPart.CFrame = teleportPart.CFrame + Vector3.new(0, 5, 0)
-
-    elseif text == "Dark Tech" then
-    local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local rootPart = character:WaitForChild("HumanoidRootPart")
-
--- Get the teleport part
-local teleportPart = workspace.__MAP.Areas["Dark Tech"].Ground
-
--- Teleport the player a bit above the part to avoid getting stuck
-rootPart.CFrame = teleportPart.CFrame + Vector3.new(0, 5, 0)
-
-    elseif text == "Steampunk" then
-    local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local rootPart = character:WaitForChild("HumanoidRootPart")
-
--- Get the teleport part
-local teleportPart = workspace.__MAP.Areas["Steampunk"].Ground
-
--- Teleport the player a bit above the part to avoid getting stuck
-rootPart.CFrame = teleportPart.CFrame + Vector3.new(0, 5, 0)
-
-    elseif text == "Alien lab" then
-    local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local rootPart = character:WaitForChild("HumanoidRootPart")
-
--- Get the teleport part
-local teleportPart = workspace.__MAP.Areas["Alien Lab"].Ground
-
--- Teleport the player a bit above the part to avoid getting stuck
-rootPart.CFrame = teleportPart.CFrame + Vector3.new(0, 5, 0)
-
-    elseif text == "Alien Forest" then
-    local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local rootPart = character:WaitForChild("HumanoidRootPart")
-
--- Get the teleport part
-local teleportPart = workspace.__MAP.Areas["Alien Forest"].Ground
-
--- Teleport the player a bit above the part to avoid getting stuck
-rootPart.CFrame = teleportPart.CFrame + Vector3.new(0, 5, 0)
-
-    elseif text == "Glitch" then
-    local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local rootPart = character:WaitForChild("HumanoidRootPart")
-
--- Get the teleport part
-local teleportPart = workspace.__MAP.Areas["Glitch"].Ground
-
--- Teleport the player a bit above the part to avoid getting stuck
-rootPart.CFrame = teleportPart.CFrame + Vector3.new(0, 5, 0)
-
-    elseif text == "HackerPortal" then
-    local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local rootPart = character:WaitForChild("HumanoidRootPart")
-
--- Get the teleport part
-local teleportPart = workspace.__MAP.Areas["Hacker Portal"].Ground
-
--- Teleport the player a bit above the part to avoid getting stuck
-rootPart.CFrame = teleportPart.CFrame + Vector3.new(0, 5, 0)
-
-    end
-end)
-local techcity = dropdown:Add("Tech City")  -- Options
-local darktech = dropdown:Add("Dark Tech")
-local steampunk = dropdown:Add("Steampunk")
-local alienlab = dropdown:Add("Alien lab")
-local alienforest = dropdown:Add("Alien Forest")
-local glitch = dropdown:Add("Glitch")
-local hackerportal = dropdown:Add("HackerPortal")
-
-local dropdown2 = autofarm:AddDropdown("Select Teleport Area (Fantasy)", function(text)
-    if text == "Ancient Island" then  -- Code
-        local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local rootPart = character:WaitForChild("HumanoidRootPart")
-
--- Get the teleport part
-local teleportPart = workspace.__MAP.Areas.Island.Ground
-
--- Teleport the player a bit above the part to avoid getting stuck
-rootPart.CFrame = teleportPart.CFrame + Vector3.new(0, 5, 0)
-
-    elseif text == "Samurai Island" then
-    
-    elseif text == "Candy Island" then
-    
-    elseif text == "Haunted Island" then
-
-    elseif text == "Hell Island" then
-
-    elseif text == "Heaven Island" then
-
-    end
-end)
-local ancient = dropdown2:Add("Ancient Island")  -- Options
-local samurai = dropdown2:Add("Samurai Island")
-local candy = dropdown2:Add("Candy Island")
-local haunted = dropdown2:Add("Haunted Island")
-local hell = dropdown2:Add("Hell Island")
-local heaven = dropdown2:Add("Heaven Island")
-
-local dropdown3 = autofarm:AddDropdown("Select Teleport Area (Spawn)", function(text)
-    if text == "Spawn" then  -- Code
-        print("o")
-    elseif text == "Town" then
-    local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local rootPart = character:WaitForChild("HumanoidRootPart")
-
--- Get the teleport part
-local teleportPart = workspace.__MAP.Areas["Town"].Ground
-
--- Teleport the player a bit above the part to avoid getting stuck
-rootPart.CFrame = teleportPart.CFrame + Vector3.new(0, 5, 0)
-
-    elseif text == "Forest" then
-    local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local rootPart = character:WaitForChild("HumanoidRootPart")
-
--- Get the teleport part
-local teleportPart = workspace.__MAP.Areas["Forest"].Ground
-
--- Teleport the player a bit above the part to avoid getting stuck
-rootPart.CFrame = teleportPart.CFrame + Vector3.new(0, 5, 0)
-
-    elseif text == "Beach" then
-    local targetColor = Color3.fromRGB(255, 255, 162)
-local beachArea = workspace.__MAP.Areas:FindFirstChild("Beach")
-local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local rootPart = character:WaitForChild("HumanoidRootPart")
-
-if beachArea then
-    for _, obj in ipairs(beachArea:GetDescendants()) do
-        if obj:IsA("BasePart") and obj.Name == "Ground" and obj.Color == targetColor then
-            rootPart.CFrame = obj.CFrame + Vector3.new(0, 5, 0)
-            print("Teleported to:", obj:GetFullName())
-            break
-        end
-    end
-else
-    warn("Beach area not found.")
-end
-
-
-    elseif text == "Mine" then
-    local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local rootPart = character:WaitForChild("HumanoidRootPart")
-
--- Get the teleport part
-local teleportPart = workspace.__MAP.Areas["Mine"].Ground
-
--- Teleport the player a bit above the part to avoid getting stuck
-rootPart.CFrame = teleportPart.CFrame + Vector3.new(0, 5, 0)
-
-    elseif text == "Winter" then
-    local player = game.Players.LocalPlayer
-local character = player.Character or player.Character Added:Wait()
-local rootPart = character:WaitForChild("HumanoidRootPart")
-
--- Get the teleport part
-local teleportPart = workspace.__MAP.Areas["Winter"].Ground
-
--- Teleport the player a bit above the part to avoid getting stuck
-rootPart.CFrame = teleportPart.CFrame + Vector3.new(0, 5, 0)
-    elseif text == "Glacier" then
-    local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local rootPart = character:WaitForChild("HumanoidRootPart")
-
--- Get the teleport part
-local teleportPart = workspace.__MAP.Areas["Glacier"].Ground
-
--- Teleport the player a bit above the part to avoid getting stuck
-rootPart.CFrame = teleportPart.CFrame + Vector3.new(0, 5, 0)
-
-    elseif text == "Desert" then
-    local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local rootPart = character:WaitForChild("HumanoidRootPart")
-
--- Get the teleport part
-local teleportPart = workspace.__MAP.Areas["Desert"].Ground
-
--- Teleport the player a bit above the part to avoid getting stuck
-rootPart.CFrame = teleportPart.CFrame + Vector3.new(0, 5, 0)
-
-    elseif text == "Volcano" then
-    local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local rootPart = character:WaitForChild("HumanoidRootPart")
-
--- Get the teleport part
-local teleportPart = workspace.__MAP.Areas["Volcano"].Ground
-
--- Teleport the player a bit above the part to avoid getting stuck
-rootPart.CFrame = teleportPart.CFrame + Vector3.new(0, 25, 0)
-
-    end
-end)
-local town = dropdown3:Add("Town")  -- Options
-local forest = dropdown3:Add("Forest")
-local beach = dropdown3:Add("Beach")
-local mine = dropdown3:Add("Mine")
-local winter = dropdown3:Add("Winter")
-local glacier = dropdown3:Add("Glacier")
-local desert = dropdown3:Add("Desert")
-local volcano = dropdown3:Add("Volcano")
-
-autofarm:AddLabel("Chests")
-
-local bigChestSwitch = autofarm:AddSwitch("Autofarm Big Chests", function(bool)
-     -- toggle_god_mode(bool)
-end)
-bigChestSwitch:Set(false)
-
-local chestPlatformSwitch = autofarm:AddSwitch("Teleport under chest (Private Platform)", function(bool)
-     -- toggle_god_mode(bool)
-end)
-chestPlatformSwitch:Set(false)
-
-local chestDropdown = autofarm:AddDropdown("Select Chest", function(text)
-    if text == "Spawn" then  -- Code
-        print("o")
-    elseif text == "Forest" then
-    print("k")
-    elseif text == "Beach" then
-    print("Weeeee")
-    end
-end)
-local volcanoChest = chestDropdown:Add("Volcano")  -- Options
-local fantasy = chestDropdown:Add("Fantasy")
-local hauntedChest = chestDropdown:Add("Haunted")
-local hellChest = chestDropdown:Add("Hell")
-local heavenChest = chestDropdown:Add("Heaven")
-local heavenbig = chestDropdown:Add("Heaven Big")
-
--- New label and slider at the bottom of AutoFarm tab
-autofarm:AddLabel("Autofarm Settings")
-
-local customSlider = autofarm:AddSlider("Breakable Aura Distance", function(value)
-    _G.customSliderValue = value
-    print("Custom slider value changed to:", value)
-    -- Update sphere size in real-time if visualization is active
-    if _G.showBreakableAura and breakableAuraSphere then
-        local radius = value
-        breakableAuraSphere.Size = Vector3.new(radius * 2, radius * 2, radius * 2)
-    end
-end, {
-    ["min"] = 1,
-    ["max"] = 500,
-})
-
--- Modified Show Breakable Aura Switch with functionality
-local breakableAuraSwitch = autofarm:AddSwitch("Show Breakable Aura", function(bool)
-    if bool then
-        startBreakableAuraVisualization()
-    else
-        stopBreakableAuraVisualization()
-    end
-end)
-breakableAuraSwitch:Set(false)
-
--- Eggs Tab
-local eggsTab = window:AddTab("Eggs") -- Name of tab
-_G.autoBuyEgg = false
-_G.eggName = "Hacker Egg"
-_G.eggBuySpeed = 1
-
+-- ========================================
+-- EGG HATCHING FUNCTIONS
+-- ========================================
 local function startAutoBuyEgg()
     task.spawn(function()
         local things = workspace:WaitForChild("__THINGS", 5)
@@ -755,12 +440,122 @@ local function startAutoBuyEgg()
     end)
 end
 
+-- ========================================
+-- TELEPORT AREA FUNCTIONS
+-- ========================================
+local function teleportToArea(areaName, offset)
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local rootPart = character:WaitForChild("HumanoidRootPart")
+    local teleportPart = workspace.__MAP.Areas[areaName].Ground
+    rootPart.CFrame = teleportPart.CFrame + (offset or Vector3.new(0, 5, 0))
+end
+
+local function teleportToBeach()
+    local targetColor = Color3.fromRGB(255, 255, 162)
+    local beachArea = workspace.__MAP.Areas:FindFirstChild("Beach")
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local rootPart = character:WaitForChild("HumanoidRootPart")
+
+    if beachArea then
+        for _, obj in ipairs(beachArea:GetDescendants()) do
+            if obj:IsA("BasePart") and obj.Name == "Ground" and obj.Color == targetColor then
+                rootPart.CFrame = obj.CFrame + Vector3.new(0, 5, 0)
+                print("Teleported to:", obj:GetFullName())
+                break
+            end
+        end
+    else
+        warn("Beach area not found.")
+    end
+end
+
+-- ========================================
+-- TABS INITIALIZATION
+-- ========================================
+local autofarm = window:AddTab("AutoFarm")
+autofarm:Show()
+local eggsTab = window:AddTab("Eggs")
+local miscTab = window:AddTab("Misc")
+
+-- ========================================
+-- SWITCHES SECTION
+-- ========================================
+autofarm:AddLabel("Main")
+
+local autofarmSwitch = autofarm:AddSwitch("Autofarm (Breakable aura)", function(bool)
+    _G.autoFarmEnabled = bool
+    if bool then
+        startAutoFarm()
+    else
+        stopAutoFarm()
+    end
+end)
+
+local orbSwitch = autofarm:AddSwitch("Collect orbs", function(bool)
+    _G.collectOrbs = bool
+    if bool then
+        startOrbCollection()
+    else
+        stopOrbCollection()
+    end
+end)
+
+local lootbagSwitch = autofarm:AddSwitch("Collect Lootbags", function(bool)
+end)
+
+local teleportSwitch = autofarm:AddSwitch("Teleport To Middle", function(bool)
+    if bool then
+        startTeleportAround()
+    else
+        stopTeleportAround()
+    end
+end)
+
+autofarm:AddLabel("Chests")
+
+local bigChestSwitch = autofarm:AddSwitch("Autofarm Big Chests", function(bool)
+end)
+
+local chestPlatformSwitch = autofarm:AddSwitch("Teleport under chest (Private Platform)", function(bool)
+end)
+
+local breakableAuraSwitch = autofarm:AddSwitch("Show Breakable Aura", function(bool)
+    if bool then
+        startBreakableAuraVisualization()
+    else
+        stopBreakableAuraVisualization()
+    end
+end)
+
 local eggHatchSwitch = eggsTab:AddSwitch("auto fast hatch egg", function(bool)
     _G.autoBuyEgg = bool
     if bool then
         startAutoBuyEgg()
     end
 end)
+
+local modifyingSwitch = miscTab:AddSwitch("Modifying?", function(bool)
+    _G.Modifying = bool
+end)
+
+-- ========================================
+-- SLIDERS SECTION
+-- ========================================
+autofarm:AddLabel("Autofarm Settings")
+
+local customSlider = autofarm:AddSlider("Breakable Aura Distance", function(value)
+    _G.customSliderValue = value
+    print("Custom slider value changed to:", value)
+    if _G.showBreakableAura and breakableAuraSphere then
+        local radius = value
+        breakableAuraSphere.Size = Vector3.new(radius * 2, radius * 2, radius * 2)
+    end
+end, {
+    ["min"] = 1,
+    ["max"] = 500,
+})
 
 local speedSlider = eggsTab:AddSlider("buy egg speed", function(value)
     _G.eggBuySpeed = value
@@ -769,28 +564,139 @@ end, {
     ["max"] = 5,
 })
 
--- Misc Tab
-local miscTab = window:AddTab("Misc") -- Name of tab
-_G.Walkspeed = 16
-_G.JumpHeight = 50
-_G.Modifying = false
-
 local walkSpeedSlider = miscTab:AddSlider("Set Walkspeed", function(value)
     _G.Walkspeed = value
 end, {
     ["min"] = 1,
     ["max"] = 200,
 })
+
 local jumpHeightSlider = miscTab:AddSlider("Set Jumpheight", function(value)
     _G.JumpHeight = value
 end, {
     ["min"] = 1,
     ["max"] = 500,
 })
-local modifyingSwitch = miscTab:AddSwitch("Modifying?", function(bool)
-    _G.Modifying = bool
+
+-- ========================================
+-- DROPDOWNS SECTION
+-- ========================================
+local dropdown = autofarm:AddDropdown("Select Teleport Area (Tech)", function(text)
+    if text == "Tech City" then
+        teleportToArea("Tech City")
+    elseif text == "Dark Tech" then
+        teleportToArea("Dark Tech")
+    elseif text == "Steampunk" then
+        teleportToArea("Steampunk")
+    elseif text == "Alien lab" then
+        teleportToArea("Alien Lab")
+    elseif text == "Alien Forest" then
+        teleportToArea("Alien Forest")
+    elseif text == "Glitch" then
+        teleportToArea("Glitch")
+    elseif text == "HackerPortal" then
+        teleportToArea("Hacker Portal")
+    end
 end)
 
+local dropdown2 = autofarm:AddDropdown("Select Teleport Area (Fantasy)", function(text)
+    if text == "Ancient Island" then
+        teleportToArea("Island")
+    elseif text == "Samurai Island" then
+    elseif text == "Candy Island" then
+    elseif text == "Haunted Island" then
+    elseif text == "Hell Island" then
+    elseif text == "Heaven Island" then
+    end
+end)
+
+local dropdown3 = autofarm:AddDropdown("Select Teleport Area (Spawn)", function(text)
+    if text == "Spawn" then
+        print("o")
+    elseif text == "Town" then
+        teleportToArea("Town")
+    elseif text == "Forest" then
+        teleportToArea("Forest")
+    elseif text == "Beach" then
+        teleportToBeach()
+    elseif text == "Mine" then
+        teleportToArea("Mine")
+    elseif text == "Winter" then
+        teleportToArea("Winter")
+    elseif text == "Glacier" then
+        teleportToArea("Glacier")
+    elseif text == "Desert" then
+        teleportToArea("Desert")
+    elseif text == "Volcano" then
+        teleportToArea("Volcano", Vector3.new(0, 25, 0))
+    end
+end)
+
+local chestDropdown = autofarm:AddDropdown("Select Chest", function(text)
+    if text == "Spawn" then
+        print("o")
+    elseif text == "Forest" then
+        print("k")
+    elseif text == "Beach" then
+        print("Weeeee")
+    end
+end)
+
+-- ========================================
+-- DROPDOWN OPTIONS SETUP
+-- ========================================
+dropdown:Add("Tech City")
+dropdown:Add("Dark Tech")
+dropdown:Add("Steampunk")
+dropdown:Add("Alien lab")
+dropdown:Add("Alien Forest")
+dropdown:Add("Glitch")
+dropdown:Add("HackerPortal")
+
+dropdown2:Add("Ancient Island")
+dropdown2:Add("Samurai Island")
+dropdown2:Add("Candy Island")
+dropdown2:Add("Haunted Island")
+dropdown2:Add("Hell Island")
+dropdown2:Add("Heaven Island")
+
+dropdown3:Add("Town")
+dropdown3:Add("Forest")
+dropdown3:Add("Beach")
+dropdown3:Add("Mine")
+dropdown3:Add("Winter")
+dropdown3:Add("Glacier")
+dropdown3:Add("Desert")
+dropdown3:Add("Volcano")
+
+chestDropdown:Add("Volcano")
+chestDropdown:Add("Fantasy")
+chestDropdown:Add("Haunted")
+chestDropdown:Add("Hell")
+chestDropdown:Add("Heaven")
+chestDropdown:Add("Heaven Big")
+
+-- ========================================
+-- DEFAULT VALUES AND INITIALIZATION
+-- ========================================
+autofarmSwitch:Set(false)
+orbSwitch:Set(false)
+lootbagSwitch:Set(false)
+teleportSwitch:Set(false)
+bigChestSwitch:Set(false)
+chestPlatformSwitch:Set(false)
+breakableAuraSwitch:Set(false)
+eggHatchSwitch:Set(false)
+modifyingSwitch:Set(false)
+
+customSlider:Set(250)
+speedSlider:Set(1)
+walkSpeedSlider:Set(16)
+jumpHeightSlider:Set(50)
+
+-- ========================================
+-- BACKGROUND TASKS AND EVENT HANDLERS
+-- ========================================
 task.spawn(function()
     while task.wait() do
         if _G.Modifying then
@@ -803,13 +709,6 @@ task.spawn(function()
     end
 end)
 
-modifyingSwitch:Set(false)
-jumpHeightSlider:Set(50)
-walkSpeedSlider:Set(16)
-speedSlider:Set(1)
-eggHatchSwitch:Set(false)
-
--- Cleanup when player leaves
 Players.PlayerRemoving:Connect(function(player)
     if player == Players.LocalPlayer then
         removeVoidProtection()
@@ -817,14 +716,12 @@ Players.PlayerRemoving:Connect(function(player)
     end
 end)
 
--- Additional cleanup when character respawns
 Players.LocalPlayer.CharacterAdded:Connect(function(character)
     char = character
     humanoid = character:WaitForChild("Humanoid")
     
-    -- Restart aura visualization if it was active
     if _G.showBreakableAura then
-        task.wait(1) -- Wait for character to fully load
+        task.wait(1)
         startBreakableAuraVisualization()
     end
 end)
