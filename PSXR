@@ -702,7 +702,6 @@ modifyingSwitch:Set(false)
 
 speedSlider:Set(1)
 walkSpeedSlider:Set(16)
-jumpHeightSlider:Set(50)
 
 -- ========================================
 -- BACKGROUND TASKS AND EVENT HANDLERS
